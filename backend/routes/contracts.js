@@ -15,9 +15,15 @@ router.post('/contracts/', authenticateToken, async (req, res) => {
       createdBy: userId,
     });
     await contract.save();
-    res.status(201).json(contract);
+    res.status(201).json({
+      success: true,
+      data: contract
+    });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
@@ -26,9 +32,15 @@ router.get('/contracts/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id || req.user.userId;
     const contracts = await SmartContract.find({ createdBy: userId }).sort({ createdAt: -1 });
-    res.json(contracts);
+    res.json({
+      success: true,
+      data: contracts
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
@@ -37,10 +49,21 @@ router.get('/contracts/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id || req.user.userId;
     const contract = await SmartContract.findOne({ _id: req.params.id, createdBy: userId });
-    if (!contract) return res.status(404).json({ message: 'Not found' });
-    res.json(contract);
+    if (!contract) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contract not found'
+      });
+    }
+    res.json({
+      success: true,
+      data: contract
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
@@ -51,10 +74,21 @@ router.delete('/contracts/:id', authenticateToken, async (req, res) => {
     console.log('DELETE req.user:', req.user, 'userId:', userId, 'params:', req.params);
     const contract = await SmartContract.findOneAndDelete({ _id: req.params.id, createdBy: userId });
     console.log('DELETE result:', contract);
-    if (!contract) return res.status(404).json({ message: 'Not found' });
-    res.json({ message: 'Deleted' });
+    if (!contract) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contract not found'
+      });
+    }
+    res.json({
+      success: true,
+      data: { message: 'Contract deleted successfully' }
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 

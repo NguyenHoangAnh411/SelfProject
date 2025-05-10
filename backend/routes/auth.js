@@ -153,41 +153,59 @@ router.post('/auth/login', async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are required'
+      });
     }
 
     const user = await User.findOne({ email });
     
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
     }
 
     if (!user.isVerified) {
-      return res.status(401).json({ message: 'Please verify your email before logging in' });
+      return res.status(401).json({
+        success: false,
+        error: 'Please verify your email before logging in'
+      });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
     }
 
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
     res.json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        isVerified: user.isVerified
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user._id,
+          email: user.email,
+          isVerified: user.isVerified
+        }
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({
+      success: false,
+      error: 'Server error during login'
+    });
   }
 });
 
@@ -196,23 +214,33 @@ router.get('/auth/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
     }
     res.json({
-      id: user._id,
-      email: user.email,
-      fullName: user.fullName || '',
-      address: user.address || '',
-      isVerified: user.isVerified,
-      isEmailVerified: user.isVerified,
-      isProfileCompleted: Boolean(user.fullName && user.address),
-      hasProfile: Boolean(user.fullName && user.address),
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      success: true,
+      data: {
+        id: user._id,
+        email: user.email,
+        fullName: user.fullName || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        isVerified: user.isVerified,
+        isEmailVerified: user.isVerified,
+        isProfileCompleted: Boolean(user.fullName && user.address),
+        hasProfile: Boolean(user.fullName && user.address),
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
     });
   } catch (error) {
     console.error('Profile error:', error);
-    res.status(500).json({ message: 'Server error while fetching profile' });
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching profile'
+    });
   }
 });
 
@@ -224,7 +252,10 @@ router.put('/auth/profile', authenticateToken, async (req, res) => {
 
     // Validate phone number format (optional)
     if (phone && !/^[0-9]{10,11}$/.test(phone)) {
-      return res.status(400).json({ message: 'Invalid phone number format' });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid phone number format'
+      });
     }
 
     const user = await User.findByIdAndUpdate(
@@ -239,14 +270,35 @@ router.put('/auth/profile', authenticateToken, async (req, res) => {
     ).select('-password');
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
     }
 
     console.log('Profile sau cập nhật:', user);
-    res.json(user);
+    res.json({
+      success: true,
+      data: {
+        id: user._id,
+        email: user.email,
+        fullName: user.fullName || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        isVerified: user.isVerified,
+        isEmailVerified: user.isVerified,
+        isProfileCompleted: Boolean(user.fullName && user.address),
+        hasProfile: Boolean(user.fullName && user.address),
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({ message: 'Server error while updating profile' });
+    res.status(500).json({
+      success: false,
+      error: 'Server error while updating profile'
+    });
   }
 });
 
